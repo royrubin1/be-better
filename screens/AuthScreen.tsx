@@ -6,34 +6,23 @@ import {
   Text,
   TextInput,
   View,
-  Alert,
 } from "react-native";
 import React, { useState } from "react";
-import {
-  initializeAuth,
-  getReactNativePersistence,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../config/firebase";
 
-import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-import app from "../config/firebase";
-
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-});
+let registered = false;
 
 const AuthScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [buttonText, setButtonText] = useState("Registrarse");
+  const [smallTitleText, setSmallTitleText] = useState("¿Ya estás registrado?");
 
   const handleLogin = async () => {
-    console.log(`Email: ${email} password: ${password}`);
-    signInWithEmailAndPassword(auth, email, password)
+    createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
-        // Signed in
-        const user = userCredential.user;
-        console.log("El usuario ha iniciado sesión");
-        // ...
+        //const user = userCredential.user;
       })
       .catch((error) => {
         const errorCode = error.code;
@@ -42,12 +31,23 @@ const AuthScreen = () => {
       });
   };
 
+  const changeAuthMode = () => {
+    if (registered) {
+      registered = false;
+      setButtonText("Registrarse");
+      setSmallTitleText("¿Ya estás registrado?");
+    } else {
+      registered = true;
+      setButtonText("Iniciar sesión");
+      setSmallTitleText("¿No tienes una cuenta?");
+    }
+  };
+
   return (
     <SafeAreaView>
       <View style={styles.container}>
         <View>
           <Text style={styles.bigTitle}>¡Bienvenido!</Text>
-          <Text style={styles.smallTitle}>Registrate ahora</Text>
         </View>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Correo</Text>
@@ -86,11 +86,10 @@ const AuthScreen = () => {
           </View>
         </View>
         <View style={styles.buttonContainer}>
-          <Button
-            title="Iniciar Sesión"
-            color={"#000000"}
-            onPress={handleLogin}
-          />
+          <Button title={buttonText} color={"#000000"} onPress={handleLogin} />
+          <Text style={styles.smallTitle} onPress={changeAuthMode}>
+            {smallTitleText}
+          </Text>
         </View>
       </View>
     </SafeAreaView>
