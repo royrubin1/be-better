@@ -13,6 +13,7 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "../config/firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 let registered = false;
 
@@ -26,12 +27,12 @@ const AuthScreen = () => {
     signInWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Signed in
-        console.log("El usuario ha iniciado sesión");
-        //const user = userCredential.user;
+        AsyncStorage.setItem("userCredential", JSON.stringify(userCredential));
       })
       .catch((error) => {
         const errorCode = error.code;
         const errorMessage = error.message;
+        console.log(error.message);
       });
   };
 
