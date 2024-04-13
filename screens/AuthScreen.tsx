@@ -8,7 +8,10 @@ import {
   View,
 } from "react-native";
 import React, { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import { auth } from "../config/firebase";
 
 let registered = false;
@@ -19,7 +22,20 @@ const AuthScreen = () => {
   const [buttonText, setButtonText] = useState("Registrarse");
   const [smallTitleText, setSmallTitleText] = useState("¿Ya estás registrado?");
 
-  const handleLogin = async () => {
+  const login = () => {
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed in
+        console.log("El usuario ha iniciado sesión");
+        //const user = userCredential.user;
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+      });
+  };
+
+  const register = () => {
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         //const user = userCredential.user;
@@ -29,6 +45,10 @@ const AuthScreen = () => {
         const errorMessage = error.message;
         console.log("Error : " + errorMessage + " " + errorCode);
       });
+  };
+
+  const handleLogin = async () => {
+    registered ? login() : register();
   };
 
   const changeAuthMode = () => {
