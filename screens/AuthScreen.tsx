@@ -6,12 +6,42 @@ import {
   Text,
   TextInput,
   View,
+  Alert,
 } from "react-native";
-import React from "react";
-import ButtonWelcomeScreen from "../components/ButtonWelcomeScreen";
-import { Colors } from "react-native/Libraries/NewAppScreen";
+import React, { useState } from "react";
+import {
+  initializeAuth,
+  getReactNativePersistence,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
+import app from "../config/firebase";
+
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+});
 
 const AuthScreen = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    console.log(`Email: ${email} password: ${password}`);
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed in
+        const user = userCredential.user;
+        console.log("El usuario ha iniciado sesión");
+        // ...
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log("Error : " + errorMessage + " " + errorCode);
+      });
+  };
+
   return (
     <SafeAreaView>
       <View style={styles.container}>
@@ -20,16 +50,20 @@ const AuthScreen = () => {
           <Text style={styles.smallTitle}>Registrate ahora</Text>
         </View>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Usuario</Text>
-          <TextInput style={styles.input} placeholder="Nombre de usuario" />
+          <Text style={styles.label}>Correo</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="email@mail.com"
+            onChangeText={(text) => setEmail(text)}
+          />
         </View>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Contraseña</Text>
-          <TextInput style={styles.input} placeholder="********" />
-        </View>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Correo</Text>
-          <TextInput style={styles.input} placeholder="email@mail.com" />
+          <TextInput
+            style={styles.input}
+            placeholder="********"
+            onChangeText={(text) => setPassword(text)}
+          />
         </View>
         <View style={styles.flexContainer}>
           <View style={styles.logoContainer}>
@@ -52,7 +86,11 @@ const AuthScreen = () => {
           </View>
         </View>
         <View style={styles.buttonContainer}>
-          <Button title="Iniciar Sesión" color={"#000000"} />
+          <Button
+            title="Iniciar Sesión"
+            color={"#000000"}
+            onPress={handleLogin}
+          />
         </View>
       </View>
     </SafeAreaView>
@@ -111,6 +149,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     margin: 15,
-    marginTop: "15%",
+    marginTop: "20%",
   },
 });
