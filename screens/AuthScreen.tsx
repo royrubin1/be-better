@@ -7,29 +7,84 @@ import {
   TextInput,
   View,
 } from "react-native";
-import React from "react";
-import ButtonWelcomeScreen from "../components/ButtonWelcomeScreen";
-import { Colors } from "react-native/Libraries/NewAppScreen";
+import React, { useState } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { auth } from "../config/firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+let registered = false;
 
 const AuthScreen = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [buttonText, setButtonText] = useState("Registrarse");
+  const [smallTitleText, setSmallTitleText] = useState("¿Ya estás registrado?");
+
+  const login = () => {
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // Signed in
+        AsyncStorage.setItem("userCredential", JSON.stringify(userCredential));
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log(error.message);
+      });
+  };
+
+  const register = () => {
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        //const user = userCredential.user;
+      })
+      .catch((error) => {
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        console.log("Error : " + errorMessage + " " + errorCode);
+      });
+  };
+
+  const handleLogin = async () => {
+    registered ? login() : register();
+  };
+
+  const changeAuthMode = () => {
+    if (registered) {
+      registered = false;
+      setButtonText("Registrarse");
+      setSmallTitleText("¿Ya estás registrado?");
+    } else {
+      registered = true;
+      setButtonText("Iniciar sesión");
+      setSmallTitleText("¿No tienes una cuenta?");
+    }
+  };
+
   return (
     <SafeAreaView>
       <View style={styles.container}>
         <View>
           <Text style={styles.bigTitle}>¡Bienvenido!</Text>
-          <Text style={styles.smallTitle}>Registrate ahora</Text>
-        </View>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Usuario</Text>
-          <TextInput style={styles.input} placeholder="Nombre de usuario" />
-        </View>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Contraseña</Text>
-          <TextInput style={styles.input} placeholder="********" />
         </View>
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Correo</Text>
-          <TextInput style={styles.input} placeholder="email@mail.com" />
+          <TextInput
+            style={styles.input}
+            placeholder="email@mail.com"
+            onChangeText={(text) => setEmail(text)}
+          />
+        </View>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="********"
+            onChangeText={(text) => setPassword(text)}
+          />
         </View>
         <View style={styles.flexContainer}>
           <View style={styles.logoContainer}>
@@ -52,7 +107,10 @@ const AuthScreen = () => {
           </View>
         </View>
         <View style={styles.buttonContainer}>
-          <Button title="Iniciar Sesión" color={"#000000"} />
+          <Button title={buttonText} color={"#000000"} onPress={handleLogin} />
+          <Text style={styles.smallTitle} onPress={changeAuthMode}>
+            {smallTitleText}
+          </Text>
         </View>
       </View>
     </SafeAreaView>
@@ -111,6 +169,6 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     margin: 15,
-    marginTop: "15%",
+    marginTop: "20%",
   },
 });
