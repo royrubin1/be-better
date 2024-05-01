@@ -7,12 +7,10 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React, { useState } from "react";
+import React from "react";
 import Schedule from "../components/Schedule";
 
 const HomeScreen = () => {
-  const [hoursByDay, setHoursByDay] = useState({});
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -27,7 +25,7 @@ const HomeScreen = () => {
           />
         </View>
       </View>
-      <Schedule hoursByDay={hoursByDay} setHoursByDay={setHoursByDay} />
+      <Schedule />
       <View
         style={{
           width: "100%",

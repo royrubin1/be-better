@@ -9,14 +9,14 @@ import {
 } from "react-native";
 import moment from "moment";
 
-const Schedule = ({ hoursByDay, setHoursByDay }) => {
+const Schedule = () => {
   const [selectedDay, setSelectedDay] = useState(null);
+  const [hoursByDay, setHoursByDay] = useState({});
+  const [showTasks, setShowTasks] = useState(false);
   const currentDate = moment();
   const daysInMonth = [...Array(currentDate.daysInMonth()).keys()].map(
     (day) => day + 1
   );
-
-  const hoursOfDays = [...Array(24).keys()].map((hour) => hour + 1);
 
   const renderDay = ({ item }) => {
     const date = moment(currentDate).date(item);
@@ -77,6 +77,10 @@ const Schedule = ({ hoursByDay, setHoursByDay }) => {
     );
   };
 
+  const handleReminderClick = () => {
+    setShowTasks(!showTasks);
+  };
+
   const handleDayPress = (day) => {
     setSelectedDay(day);
     const exampleObjectives = [
@@ -109,7 +113,7 @@ const Schedule = ({ hoursByDay, setHoursByDay }) => {
           data={daysInMonth}
           horizontal
           showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.toString()}
+          keyExtractor={(item, index) => index.toString()}
           renderItem={renderDay}
         />
       </View>
@@ -122,22 +126,40 @@ const Schedule = ({ hoursByDay, setHoursByDay }) => {
         <FlatList
           data={hoursByDay[selectedDay] || []}
           showsVerticalScrollIndicator={false}
-          keyExtractor={(item) => item.toString()}
+          keyExtractor={(item, index) => index.toString()}
           renderItem={renderHour}
           style={{ height: "100%" }}
         />
       </View>
       <View style={{ maxHeight: "40%" }}>
-        <Text style={styles.reminderTitle}>Reminder</Text>
-        <Text style={styles.reminderText}>
-          Don't forget schedule for tomorrow4
-        </Text>
-        <FlatList
-          data={hoursByDay[selectedDay] || []}
-          showsVerticalScrollIndicator={false}
-          renderItem={renderTasks}
-          style={{ height: "100%" }}
-        />
+        <TouchableOpacity onPress={handleReminderClick}>
+          <Text style={styles.reminderTitle}>Reminder</Text>
+          <Text style={styles.reminderText}>
+            Don't forget schedule for tomorrow
+          </Text>
+        </TouchableOpacity>
+        {!showTasks ? (
+          <View
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: "10%",
+            }}
+          >
+            <Image
+              style={{ width: "35%", height: 100 }}
+              source={require("../assets/capibara_sleep.png")}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={hoursByDay[selectedDay] || []}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderTasks}
+            style={{ height: "100%" }}
+          />
+        )}
       </View>
     </View>
   );
