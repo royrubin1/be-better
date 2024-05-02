@@ -8,36 +8,12 @@ import {
   Image,
 } from "react-native";
 import moment from "moment";
+import DateSection from "./DateSection";
 
 const Schedule = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoursByDay, setHoursByDay] = useState({});
   const currentDate = moment();
-  const daysInMonth = [...Array(currentDate.daysInMonth()).keys()].map(
-    (day) => day + 1
-  );
-
-  const renderDay = ({ item }) => {
-    const date = moment(currentDate).date(item);
-    const isActive = (day) => day === selectedDay;
-
-    return (
-      <TouchableOpacity
-        onPress={() => handleDayPress(item)}
-        style={[
-          styles.dayContainer,
-          isActive(item) && { backgroundColor: "#EAF5EC" },
-        ]}
-      >
-        <Text style={[styles.day, isActive(item) && { color: "#40916C" }]}>
-          {date.format("D")}
-        </Text>
-        <Text style={[styles.weekday, isActive(item) && { color: "#40916C" }]}>
-          {date.format("ddd")}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
 
   // Category default with their colors
   const categoryColors = {
@@ -113,15 +89,7 @@ const Schedule = () => {
 
   return (
     <View style={styles.container}>
-      <View>
-        <FlatList
-          data={daysInMonth}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={renderDay}
-        />
-      </View>
+      <DateSection selectedDay={selectedDay} handleDayPress={handleDayPress} />
       <View style={{ maxHeight: "40%" }}>
         <Text style={styles.dateText}>
           {selectedDay
@@ -173,22 +141,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "column",
     gap: 10,
-  },
-  dayContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    width: 60,
-    height: 60,
-    backgroundColor: "#f0f0f0",
-    margin: 5,
-    borderRadius: 10,
-  },
-  day: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  weekday: {
-    fontSize: 14,
   },
   dateText: {
     fontSize: 20,
