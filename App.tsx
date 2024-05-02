@@ -3,9 +3,10 @@ import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import WelcomeScreen from "./screens/WelcomeScreen";
 import AuthScreen from "./screens/AuthScreen";
+import HomeScreen from "./screens/HomeScreen";
 
 export default function App() {
-  return <AuthScreen />;
+  return <HomeScreen />;
 }
 
 const styles = StyleSheet.create({
