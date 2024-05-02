@@ -12,7 +12,6 @@ import moment from "moment";
 const Schedule = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [hoursByDay, setHoursByDay] = useState({});
-  const [showTasks, setShowTasks] = useState(false);
   const currentDate = moment();
   const daysInMonth = [...Array(currentDate.daysInMonth()).keys()].map(
     (day) => day + 1
@@ -40,11 +39,21 @@ const Schedule = () => {
     );
   };
 
+  // Category default with their colors
+  const categoryColors = {
+    Work: "#3498db",
+    Sports: "#e74c3c",
+    Health: "#2ecc71",
+  };
+
   const renderHour = ({ item }) => {
+    const categoryColor = categoryColors[item.category];
     return (
       <View style={styles.objectiveContainer}>
         <Text style={styles.objectiveTime}>{item.startTime}</Text>
-        <View style={styles.objectiveCard}>
+        <View
+          style={[styles.objectiveCard, { backgroundColor: categoryColor }]}
+        >
           <Text style={styles.objectiveTitle}>{item.title}</Text>
           <Text style={styles.objectiveCategory}>{item.category}</Text>
         </View>
@@ -77,10 +86,6 @@ const Schedule = () => {
     );
   };
 
-  const handleReminderClick = () => {
-    setShowTasks(!showTasks);
-  };
-
   const handleDayPress = (day) => {
     setSelectedDay(day);
     const exampleObjectives = [
@@ -100,7 +105,7 @@ const Schedule = () => {
         startTime: "14.00",
         endTime: "16.00",
         title: "Work on Project",
-        category: "Work",
+        category: "Sports",
       },
     ];
     setHoursByDay({ ...hoursByDay, [day]: exampleObjectives });
@@ -132,19 +137,17 @@ const Schedule = () => {
         />
       </View>
       <View style={{ maxHeight: "40%" }}>
-        <TouchableOpacity onPress={handleReminderClick}>
-          <Text style={styles.reminderTitle}>Reminder</Text>
-          <Text style={styles.reminderText}>
-            Don't forget schedule for tomorrow
-          </Text>
-        </TouchableOpacity>
-        {!showTasks ? (
+        <Text style={styles.reminderTitle}>Reminder</Text>
+        <Text style={styles.reminderText}>
+          Don't forget schedule for tomorrow
+        </Text>
+        {!selectedDay || hoursByDay[selectedDay]?.length === 0 ? (
           <View
             style={{
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              marginTop: "10%",
+              marginTop: "15%",
             }}
           >
             <Image
@@ -198,9 +201,11 @@ const styles = StyleSheet.create({
   },
   objectiveCard: {
     alignSelf: "flex-end",
-    backgroundColor: "#40916C",
     padding: 14,
     borderRadius: 10,
+    borderTopStartRadius: 20,
+    borderBottomStartRadius: 20,
+    borderStartWidth: 5,
     width: 250,
   },
   objectiveTime: {
