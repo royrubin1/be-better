@@ -17,7 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 let registered = false;
 
-const AuthScreen = () => {
+const AuthScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [buttonText, setButtonText] = useState("Registrarse");
@@ -27,11 +27,9 @@ const AuthScreen = () => {
     signInWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
         // Signed in
-        AsyncStorage.setItem("userCredential", JSON.stringify(userCredential));
+        successLogin(userCredential);
       })
       .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
         console.log(error.message);
       });
   };
@@ -39,7 +37,7 @@ const AuthScreen = () => {
   const register = () => {
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
-        //const user = userCredential.user;
+        successLogin(userCredential);
       })
       .catch((error) => {
         const errorCode = error.code;
@@ -50,6 +48,12 @@ const AuthScreen = () => {
 
   const handleLogin = async () => {
     registered ? login() : register();
+  };
+
+  const successLogin = (userCredential) => {
+    AsyncStorage.setItem("newUser", "false");
+    AsyncStorage.setItem("userCredential", JSON.stringify(userCredential));
+    navigation.navigate("Home");
   };
 
   const changeAuthMode = () => {
@@ -73,6 +77,7 @@ const AuthScreen = () => {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Correo</Text>
           <TextInput
+            textContentType="emailAddress"
             style={styles.input}
             placeholder="email@mail.com"
             onChangeText={(text) => setEmail(text)}
@@ -81,6 +86,7 @@ const AuthScreen = () => {
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Contraseña</Text>
           <TextInput
+            textContentType="password"
             style={styles.input}
             placeholder="********"
             onChangeText={(text) => setPassword(text)}
