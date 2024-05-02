@@ -1,14 +1,18 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
 
-interface CustomButtonProps {
-  text: String;
+interface Props {
+  text: string;
+  navigation?: any;
 }
 
-const ButtonWelcomeScreen: React.FC<CustomButtonProps> = ({ text }) => {
+const ButtonWelcomeScreen = ({ text, navigation }: Props) => {
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate("Auth")}
+      >
         <Text style={styles.buttonText}>{text}</Text>
       </TouchableOpacity>
     </View>

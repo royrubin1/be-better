@@ -18,14 +18,14 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: "#5EA3B7",
     width: "100%",
-    height: "55%",
+    height: "30%",
     borderBottomEndRadius: 40,
     borderBottomStartRadius: 40,
     alignItems: "center",
     justifyContent: "center",
   },
   image: {
-    width: "60%",
-    height: "60%",
+    width: "50%",
+    height: "100%",
   },
 });

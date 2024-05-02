@@ -1,9 +1,21 @@
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
-import React from "react";
+import React, { useEffect } from "react";
 import Header from "../components/Header";
 import ButtonWelcomeScreen from "../components/ButtonWelcomeScreen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const WelcomeScreen = () => {
+const WelcomeScreen = ({ navigation }) => {
+  useEffect(() => {
+    checkIfUserNew();
+  }, []);
+
+  const checkIfUserNew = async () => {
+    const newUser = await AsyncStorage.getItem("newUser");
+    if (newUser === "false") {
+      navigation.navigate("Home");
+    }
+  };
+
   return (
     <SafeAreaView>
       <Header />
@@ -17,7 +29,7 @@ const WelcomeScreen = () => {
           vida mejor.
         </Text>
       </View>
-      <ButtonWelcomeScreen text="Iniciar" />
+      <ButtonWelcomeScreen text="Iniciar" navigation={navigation} />
     </SafeAreaView>
   );
 };

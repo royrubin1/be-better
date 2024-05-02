@@ -1,12 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-} from "react-native";
+import { View, Text, FlatList, StyleSheet, Image } from "react-native";
 import moment from "moment";
 import DateSection from "./DateSection";
 
