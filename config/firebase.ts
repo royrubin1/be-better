@@ -13,6 +13,7 @@ import {
   STORAGE_BUCKET,
 } from "@env";
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // TODO: Add SDKs for Firebase products that you want to use
 
@@ -48,4 +49,6 @@ const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage),
 });
 
-export { app, auth };
+const db = getFirestore(app);
+
+export { app, auth, db };
