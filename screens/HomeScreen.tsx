@@ -9,7 +9,7 @@ import {
 import React from "react";
 import Schedule from "../components/Schedule";
 
-const HomeScreen = () => {
+const HomeScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -35,7 +35,12 @@ const HomeScreen = () => {
         }}
       >
         <TouchableOpacity style={styles.btnSchedule}>
-          <Text style={styles.textButton}>Set Schedule</Text>
+          <Text
+            style={styles.textButton}
+            onPress={() => navigation.navigate("Task")}
+          >
+            Set Schedule
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
