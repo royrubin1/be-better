@@ -1,32 +1,80 @@
-import React, { useState } from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+  ListRenderItem,
+} from "react-native";
 import moment from "moment";
 import DateSection from "./DateSection";
+import { auth, db } from "../config/firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { Item } from "react-native-picker-select";
 
 const Schedule = () => {
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [hoursByDay, setHoursByDay] = useState({});
   const currentDate = moment();
+  const [selectedDay, setSelectedDay] = useState(currentDate.date());
+  const [tasksByDay, setTasksByDay] = useState({});
+
+  useEffect(() => {
+    fetchUserTasks();
+  }, [selectedDay]);
+
+  const fetchUserTasks = async () => {
+    // get all tasks with uid user auth
+    const queryGoals = query(
+      collection(db, "goals"),
+      where("user_id", "==", auth.currentUser.uid)
+    );
+
+    const querySnapShot = await getDocs(queryGoals);
+    const goals = [];
+    querySnapShot.forEach((doc) => {
+      goals.push({ id: doc.id, ...doc.data() });
+    });
+    const filterGoals = goals.filter((goal) => {
+      const selectedDate = currentDate.date(selectedDay);
+      const selectedDayMilliseconds = selectedDate.valueOf();
+      // Check if the current date is within the range
+      return (
+        goal.start_date >= selectedDayMilliseconds &&
+        goal.end_date <= selectedDayMilliseconds
+      );
+    });
+    setTasksByDay({ ...tasksByDay, [selectedDay]: filterGoals });
+  };
 
   // Category default with their colors
   const categoryColors = {
-    Work: "#3498db",
-    Sports: "#e74c3c",
-    Health: "#2ecc71",
+    Trabajo: "#3498db",
+    Personal: "#e74c3c",
+    Salud: "#2ecc71",
   };
 
   const renderHour = ({ item }) => {
-    const categoryColor = categoryColors[item.category];
     return (
       <View style={styles.objectiveContainer}>
-        <Text style={styles.objectiveTime}>{item.startTime}</Text>
+        <Text style={styles.objectiveTime}>
+          {moment(item.start_date).format("DD-MM")}
+        </Text>
         <View
-          style={[styles.objectiveCard, { backgroundColor: categoryColor }]}
+          style={[
+            styles.objectiveCard,
+            {
+              backgroundColor: !categoryColors[item.category]
+                ? "#cccccc"
+                : categoryColors[item.category],
+            },
+          ]}
         >
           <Text style={styles.objectiveTitle}>{item.title}</Text>
           <Text style={styles.objectiveCategory}>{item.category}</Text>
         </View>
-        <Text style={styles.objectiveTime}>{item.endTime}</Text>
+        <Text style={styles.objectiveTime}>
+          {moment(item.end_date).format("DD-MM")}
+        </Text>
       </View>
     );
   };
@@ -57,27 +105,6 @@ const Schedule = () => {
 
   const handleDayPress = (day) => {
     setSelectedDay(day);
-    const exampleObjectives = [
-      {
-        startTime: "09.00",
-        endTime: "10.00",
-        title: "Team Meeting",
-        category: "Work",
-      },
-      {
-        startTime: "11.00",
-        endTime: "12.00",
-        title: "Gym",
-        category: "Health",
-      },
-      {
-        startTime: "14.00",
-        endTime: "16.00",
-        title: "Work on Project",
-        category: "Sports",
-      },
-    ];
-    setHoursByDay({ ...hoursByDay, [day]: exampleObjectives });
   };
 
   return (
@@ -85,12 +112,10 @@ const Schedule = () => {
       <DateSection selectedDay={selectedDay} handleDayPress={handleDayPress} />
       <View style={{ maxHeight: "40%" }}>
         <Text style={styles.dateText}>
-          {selectedDay
-            ? moment(currentDate).date(selectedDay).format("dddd, D MMMM YYYY")
-            : "Select a Day"}
+          {moment(currentDate).date(selectedDay).format("dddd, D MMMM YYYY")}
         </Text>
         <FlatList
-          data={hoursByDay[selectedDay] || []}
+          data={tasksByDay[selectedDay] || []}
           showsVerticalScrollIndicator={false}
           keyExtractor={(item, index) => index.toString()}
           renderItem={renderHour}
@@ -102,7 +127,7 @@ const Schedule = () => {
         <Text style={styles.reminderText}>
           Don't forget schedule for tomorrow
         </Text>
-        {!selectedDay || hoursByDay[selectedDay]?.length === 0 ? (
+        {!tasksByDay[selectedDay] || [] ? (
           <View
             style={{
               display: "flex",
@@ -118,7 +143,7 @@ const Schedule = () => {
           </View>
         ) : (
           <FlatList
-            data={hoursByDay[selectedDay] || []}
+            data={tasksByDay[selectedDay] || []}
             showsVerticalScrollIndicator={false}
             renderItem={renderTasks}
             style={{ height: "100%" }}
@@ -155,6 +180,7 @@ const styles = StyleSheet.create({
   },
   objectiveTime: {
     fontSize: 16,
+    fontWeight: "bold",
     color: "#c0c0c0",
   },
   objectiveTitle: {

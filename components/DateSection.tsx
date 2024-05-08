@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React, { useState } from "react";
+import React from "react";
 import moment from "moment";
 
 const DateSection = ({ selectedDay, handleDayPress }) => {
@@ -16,7 +16,6 @@ const DateSection = ({ selectedDay, handleDayPress }) => {
   const renderDay = ({ item }) => {
     const date = moment(currentDate).date(item);
     const isActive = (day) => day === selectedDay;
-
     return (
       <TouchableOpacity
         onPress={() => handleDayPress(item)}
