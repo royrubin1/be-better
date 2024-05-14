@@ -3,7 +3,6 @@ import { View, Text, FlatList, StyleSheet, Image } from "react-native";
 import moment from "moment";
 import DateSection from "./DateSection";
 import { auth, db } from "../config/firebase";
-import { uid } from "uid";
 import { collection, getDocs, query, where } from "firebase/firestore";
 
 const Schedule = () => {
@@ -14,44 +13,30 @@ const Schedule = () => {
 
   useEffect(() => {
     const fetchAndFilterUserTasks = async () => {
-      const goals = await fetchUserTasks();
-      const filterGoals = goals.filter((goal) => {
-        const selectedDate = currentDate.date(selectedDay);
-        const selectedDayMilliseconds = selectedDate.valueOf();
-        // Check if the current date is within the range
-        return (
-          goal.start_date >= selectedDayMilliseconds &&
-          goal.end_date <= selectedDayMilliseconds
-        );
-      });
-      setTasksByDay({ ...tasksByDay, [selectedDay]: filterGoals });
+      const selectedDate = currentDate.date(selectedDay).format("YYYY-MM-DD");
+      const goals = await fetchUserTasks(selectedDate);
+      setTasksByDay({ ...tasksByDay, [selectedDay]: goals });
     };
     fetchAndFilterUserTasks();
   }, [selectedDay]);
 
   useEffect(() => {
     const fetchAndFilterUserTasks = async () => {
-      const goals = await fetchUserTasks();
-      const filterGoalsReminder = goals.filter((goal) => {
-        const tomorrowDate = moment(currentDate)
-          .add(1, "day")
-          .startOf("day")
-          .format("YYYY-MM-DD");
-        const goalStartDate = moment(goal.start_date)
-          .startOf("day")
-          .format("YYYY-MM-DD");
-        return goalStartDate.trim() === tomorrowDate.trim();
-      });
-      setReminderTasks(filterGoalsReminder);
+      const tomorrowDate = moment(currentDate)
+        .add(1, "day")
+        .format("YYYY-MM-DD");
+      const goals = await fetchUserTasks(tomorrowDate);
+      setReminderTasks(goals);
     };
     fetchAndFilterUserTasks();
   }, []);
 
-  const fetchUserTasks = async () => {
+  const fetchUserTasks = async (formatDate) => {
     // get all tasks with uid user auth
     const queryGoals = query(
       collection(db, "goals"),
-      where("user_id", "==", auth.currentUser.uid)
+      where("user_id", "==", auth.currentUser.uid),
+      where("start_date", "==", formatDate)
     );
 
     const querySnapShot = await getDocs(queryGoals);

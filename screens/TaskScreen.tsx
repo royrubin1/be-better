@@ -28,8 +28,8 @@ const TaskScreen = ({ navigation }) => {
 
     const goal = {
       title,
-      start_date: startDate.getTime(),
-      end_date: endDate.getTime(),
+      start_date: startDate.toJSON().slice(0, 10),
+      end_date: endDate.toJSON().slice(0, 10),
       category,
       done: false,
       user_id: auth.currentUser.uid,

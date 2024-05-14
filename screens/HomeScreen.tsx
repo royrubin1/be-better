@@ -19,7 +19,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.containerImage}>
           <Image
-            source={require("../assets/hombre.png")}
+            source={require("../assets/calendario.png")}
             style={styles.avatar}
           />
         </View>
