@@ -10,25 +10,41 @@ const Schedule = () => {
   const [selectedDay, setSelectedDay] = useState(currentDate.date());
   const [tasksByDay, setTasksByDay] = useState({});
   const [reminderTasks, setReminderTasks] = useState([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const fetchAndFilterUserTasks = async () => {
-      const selectedDate = currentDate.date(selectedDay).format("YYYY-MM-DD");
-      const goals = await fetchUserTasks(selectedDate);
-      setTasksByDay({ ...tasksByDay, [selectedDay]: goals });
-    };
-    fetchAndFilterUserTasks();
-  }, [selectedDay]);
+    if (isAuthenticated) {
+      const fetchAndFilterUserTasks = async () => {
+        const selectedDate = currentDate.date(selectedDay).format("YYYY-MM-DD");
+        const goals = await fetchUserTasks(selectedDate);
+        setTasksByDay({ ...tasksByDay, [selectedDay]: goals });
+      };
+      fetchAndFilterUserTasks();
+    }
+  }, [isAuthenticated, selectedDay]);
 
   useEffect(() => {
-    const fetchAndFilterUserTasks = async () => {
-      const tomorrowDate = moment(currentDate)
-        .add(1, "day")
-        .format("YYYY-MM-DD");
-      const goals = await fetchUserTasks(tomorrowDate);
-      setReminderTasks(goals);
-    };
-    fetchAndFilterUserTasks();
+    if (isAuthenticated) {
+      const fetchAndFilterUserTasks = async () => {
+        const tomorrowDate = moment(currentDate)
+          .add(1, "day")
+          .format("YYYY-MM-DD");
+        const goals = await fetchUserTasks(tomorrowDate);
+        setReminderTasks(goals);
+      };
+      fetchAndFilterUserTasks();
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   const fetchUserTasks = async (formatDate) => {
@@ -97,8 +113,8 @@ const Schedule = () => {
         >
           <Text style={{ color: "#D4D4F6" }}>{item.title}</Text>
           <Text style={{ color: "#D4D4F6" }}>
-            {moment(item.start_date).format("DD-MM")} -{" "}
-            {moment(item.end_date).format("DD-MM")}
+            {moment(item.start_date, "YYYY-MM-DD").format("DD-MM")} -{" "}
+            {moment(item.end_date, "YYYY-MM-DD").format("DD-MM")}
           </Text>
         </View>
       </View>
@@ -129,7 +145,7 @@ const Schedule = () => {
         <Text style={styles.reminderText}>
           Don't forget schedule for tomorrow
         </Text>
-        {!reminderTasks || [] ? (
+        {reminderTasks.length === 0 ? (
           <View
             style={{
               display: "flex",

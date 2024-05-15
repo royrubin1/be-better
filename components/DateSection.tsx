@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import moment from "moment";
 
 const DateSection = ({ selectedDay, handleDayPress }) => {
@@ -13,6 +13,7 @@ const DateSection = ({ selectedDay, handleDayPress }) => {
   const daysInMonth = [...Array(currentDate.daysInMonth()).keys()].map(
     (day) => day + 1
   );
+  const ITEM_WIDTH = 60;
   const renderDay = ({ item }) => {
     const date = moment(currentDate).date(item);
     const isActive = (day) => day === selectedDay;
@@ -43,6 +44,12 @@ const DateSection = ({ selectedDay, handleDayPress }) => {
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item, index) => index.toString()}
           renderItem={renderDay}
+          getItemLayout={(data, index) => ({
+            length: ITEM_WIDTH,
+            offset: ITEM_WIDTH * index,
+            index,
+          })}
+          initialScrollIndex={currentDate.date() - 1}
         />
       </View>
     </View>
