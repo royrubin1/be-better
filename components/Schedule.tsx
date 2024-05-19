@@ -26,9 +26,7 @@ const Schedule = () => {
   useEffect(() => {
     if (isAuthenticated) {
       const fetchAndFilterUserTasks = async () => {
-        const tomorrowDate = moment(currentDate)
-          .add(1, "day")
-          .format("YYYY-MM-DD");
+        const tomorrowDate = moment().add(1, "day").format("YYYY-MM-DD");
         const goals = await fetchUserTasks(tomorrowDate);
         setReminderTasks(goals);
       };
@@ -128,17 +126,34 @@ const Schedule = () => {
   return (
     <View style={styles.container}>
       <DateSection selectedDay={selectedDay} handleDayPress={handleDayPress} />
-      <View style={{ maxHeight: "40%" }}>
+      <View style={{ maxHeight: "40%", minHeight: "40%" }}>
         <Text style={styles.dateText}>
           {moment(currentDate).date(selectedDay).format("dddd, D MMMM YYYY")}
         </Text>
-        <FlatList
-          data={tasksByDay[selectedDay] || []}
-          showsVerticalScrollIndicator={false}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={renderHour}
-          style={{ height: "100%" }}
-        />
+        {!tasksByDay[selectedDay] || tasksByDay[selectedDay].length === 0 ? (
+          <View
+            style={{
+              height: "100%",
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text style={styles.noTasksText}>No tasks for today!</Text>
+            <Text style={styles.suggestionText}>
+              How about taking a walk or reading a book?
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={tasksByDay[selectedDay] || []}
+            showsVerticalScrollIndicator={false}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={renderHour}
+            style={{ height: "100%" }}
+          />
+        )}
       </View>
       <View style={{ maxHeight: "40%" }}>
         <Text style={styles.reminderTitle}>Reminder</Text>
@@ -243,6 +258,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 12,
+  },
+  noTasksText: {
+    fontSize: 18,
+    color: "#333",
+    marginTop: 10,
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: "#666",
+    marginTop: 10,
   },
 });
 export default Schedule;
