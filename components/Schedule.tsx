@@ -50,7 +50,8 @@ const Schedule = () => {
     const queryGoals = query(
       collection(db, "goals"),
       where("user_id", "==", auth.currentUser.uid),
-      where("start_date", "==", formatDate)
+      where("start_date", "==", formatDate),
+      where("done", "==", false)
     );
 
     const querySnapShot = await getDocs(queryGoals);
