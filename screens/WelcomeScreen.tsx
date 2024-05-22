@@ -3,6 +3,7 @@ import React, { useEffect } from "react";
 import Header from "../components/Header";
 import ButtonWelcomeScreen from "../components/ButtonWelcomeScreen";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Container from "../components/Container";
 
 const WelcomeScreen = ({ navigation }) => {
   useEffect(() => {
@@ -17,7 +18,7 @@ const WelcomeScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView>
+    <Container>
       <Header />
       <View style={styles.containerText}>
         <Text style={styles.bestSelfMessage}>
@@ -30,7 +31,7 @@ const WelcomeScreen = ({ navigation }) => {
         </Text>
       </View>
       <ButtonWelcomeScreen text="Iniciar" navigation={navigation} />
-    </SafeAreaView>
+    </Container>
   );
 };
 
@@ -38,13 +39,12 @@ export default WelcomeScreen;
 
 const styles = StyleSheet.create({
   containerText: {
-    marginBottom: "6%",
-    marginTop: "5%",
+    marginVertical: "10%",
   },
   bestSelfMessage: {
     fontSize: 40,
     fontStyle: "italic",
-    marginBottom: "5%",
+    marginBottom: "8%",
   },
   beBetterAlly: {
     fontSize: 20,
