@@ -42,6 +42,7 @@ const getStyles = (dimensions) => {
         flexDirection: "column",
         padding: 10,
         margin: 10,
+        justifyContent: "space-between",
       },
     });
   }

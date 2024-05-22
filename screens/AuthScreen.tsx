@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../config/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Container from "../components/Container";
 
 let registered = false;
 
@@ -69,7 +70,7 @@ const AuthScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView>
+    <Container>
       <View style={styles.container}>
         <View>
           <Text style={styles.bigTitle}>¡Bienvenido!</Text>
@@ -119,7 +120,7 @@ const AuthScreen = ({ navigation }) => {
           </Text>
         </View>
       </View>
-    </SafeAreaView>
+    </Container>
   );
 };
 
@@ -129,6 +130,10 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 50,
     marginHorizontal: 10,
+    height: "100%",
+    display: "flex",
+    justifyContent: "center",
+    gap: 10,
   },
   bigTitle: {
     fontSize: 30,
