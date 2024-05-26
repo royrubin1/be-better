@@ -1,16 +1,29 @@
 import React, { useState } from "react";
-import { Text, TextInput, Button, StyleSheet, Alert, View } from "react-native";
+import {
+  Text,
+  TextInput,
+  Button,
+  StyleSheet,
+  Alert,
+  View,
+  ScrollView,
+  Platform,
+  Modal,
+} from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { auth, db } from "../config/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { uid } from "uid";
 import Container from "../components/Container";
 import RNPickerSelect from "react-native-picker-select";
 import { Calendar } from "react-native-calendars";
+
 const TaskScreen = ({ navigation }) => {
   const addCategoryText = "Añadir categoría";
   const [title, setTitle] = useState("");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [date, setDate] = useState(null);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([
     "Personal",
@@ -18,17 +31,21 @@ const TaskScreen = ({ navigation }) => {
     "Salud",
     addCategoryText,
   ]);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [timePickerMode, setTimePickerMode] = useState("start"); // 'start' or 'end'
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [newCategory, setNewCategory] = useState("");
 
   const handleSubmit = async () => {
-    if (!title || !startDate || !endDate || !category) {
+    if (!title || !date || !startTime || !endTime || !category) {
       alert("Por favor rellena todos los datos");
       return;
     }
 
     const goal = {
       title,
-      start_date: startDate,
-      end_date: endDate,
+      start_date: `${date}T${startTime}`,
+      end_date: `${date}T${endTime}`,
       category,
       done: false,
       user_id: auth.currentUser.uid,
@@ -39,20 +56,33 @@ const TaskScreen = ({ navigation }) => {
   };
 
   const handleAddCategory = () => {
-    Alert.prompt(
-      addCategoryText,
-      "Introduce el nombre de la nueva categoría:",
-      (newCategory) => {
-        if (newCategory && !categories.includes(newCategory)) {
-          setCategories([
-            ...categories.slice(0, -1),
-            newCategory,
-            addCategoryText,
-          ]);
-          setCategory(newCategory);
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        addCategoryText,
+        "Introduce el nombre de la nueva categoría:",
+        (newCategory) => {
+          if (newCategory && !categories.includes(newCategory)) {
+            setCategories([
+              ...categories.slice(0, -1),
+              newCategory,
+              addCategoryText,
+            ]);
+            setCategory(newCategory);
+          }
         }
-      }
-    );
+      );
+    } else {
+      setIsModalVisible(true);
+    }
+  };
+
+  const handleAndroidCategoryAdd = () => {
+    if (newCategory && !categories.includes(newCategory)) {
+      setCategories([...categories.slice(0, -1), newCategory, addCategoryText]);
+      setCategory(newCategory);
+    }
+    setIsModalVisible(false);
+    setNewCategory("");
   };
 
   const addGoalData = async (goal) => {
@@ -61,49 +91,42 @@ const TaskScreen = ({ navigation }) => {
   };
 
   const onDayPress = (day) => {
-    if (!startDate || (startDate && endDate)) {
-      setStartDate(day.dateString);
-      setEndDate(null);
-    } else if (startDate && !endDate) {
-      if (new Date(day.dateString) > new Date(startDate)) {
-        setEndDate(day.dateString);
-      } else {
-        setStartDate(day.dateString);
-      }
-    }
+    setDate(day.dateString);
+    setShowTimePicker(true);
+    setTimePickerMode("start");
   };
 
   const getMarkedDates = () => {
     const markedDates = {};
-    if (startDate) {
-      markedDates[startDate] = {
-        startingDay: true,
-        color: "#70d7c7",
-        textColor: "white",
+    if (date) {
+      markedDates[date] = {
+        selected: true,
+        selectedColor: "#70d7c7",
       };
-    }
-    if (endDate) {
-      markedDates[endDate] = {
-        endingDay: true,
-        color: "#70d7c7",
-        textColor: "white",
-      };
-      // Rellenar las fechas entre startDate y endDate
-      let current = new Date(startDate);
-      while (current < new Date(endDate)) {
-        current.setDate(current.getDate() + 1);
-        const dateString = current.toISOString().split("T")[0];
-        if (dateString !== endDate) {
-          markedDates[dateString] = { color: "#c2e9e5", textColor: "black" };
-        }
-      }
     }
     return markedDates;
   };
 
+  const onTimePickerChange = (event, selectedDate) => {
+    setShowTimePicker(false);
+    if (selectedDate) {
+      const timeString = selectedDate
+        .toTimeString()
+        .split(" ")[0]
+        .substring(0, 5);
+      if (timePickerMode === "start") {
+        setStartTime(timeString);
+        setShowTimePicker(true);
+        setTimePickerMode("end");
+      } else {
+        setEndTime(timeString);
+      }
+    }
+  };
+
   return (
     <Container>
-      <View style={{ marginTop: 25 }}>
+      <ScrollView contentContainerStyle={styles.container}>
         <TextInput
           style={styles.input}
           value={title}
@@ -113,7 +136,6 @@ const TaskScreen = ({ navigation }) => {
 
         <Calendar
           markedDates={getMarkedDates()}
-          markingType="period"
           onDayPress={onDayPress}
           theme={{
             selectedDayBackgroundColor: "#70d7c7",
@@ -122,66 +144,111 @@ const TaskScreen = ({ navigation }) => {
             arrowColor: "#70d7c7",
           }}
         />
+
+        {showTimePicker && Platform.OS === "android" && (
+          <DateTimePicker
+            value={new Date()}
+            mode="time"
+            is24Hour={true}
+            display="default"
+            onChange={onTimePickerChange}
+          />
+        )}
+
+        {showTimePicker && Platform.OS === "ios" && (
+          <Modal transparent={true} animationType="slide">
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <DateTimePicker
+                  value={new Date()}
+                  mode="time"
+                  is24Hour={true}
+                  display="spinner"
+                  onChange={onTimePickerChange}
+                />
+                <Button title="Done" onPress={() => setShowTimePicker(false)} />
+              </View>
+            </View>
+          </Modal>
+        )}
+
         <Button
           title="Clear Dates"
           onPress={() => {
-            setStartDate(null);
-            setEndDate(null);
+            setDate(null);
+            setStartTime(null);
+            setEndTime(null);
           }}
         />
-      </View>
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>
-          Start Date: {startDate || "Select a start date"}
-        </Text>
-      </View>
-      <View style={styles.dateContainer}>
-        <Text style={styles.dateText}>
-          End Date: {endDate || "Select a end date"}
-        </Text>
-      </View>
-      <RNPickerSelect
-        style={{
-          inputIOS: {
-            width: "50%",
-            paddingHorizontal: 10,
-            paddingVertical: 8,
-            borderWidth: 1,
-            borderColor: "#ccc",
-            borderRadius: 4,
-            backgroundColor: "#fff",
-          },
-          inputAndroid: {
-            width: "50%",
-            paddingHorizontal: 10,
-            paddingVertical: 8,
-            borderWidth: 0.5,
-            borderColor: "#ccc",
-            borderRadius: 8,
-            backgroundColor: "#fff",
-          },
-        }}
-        onValueChange={(value) => {
-          if (value === addCategoryText) {
-            handleAddCategory();
-          } else {
-            setCategory(value);
-          }
-        }}
-        items={categories.map((cat) => ({ label: cat, value: cat }))}
-        placeholder={{ label: "Selecciona una categoría", value: null }}
-      />
-      <Button title="Submit" onPress={handleSubmit} />
+
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>Date: {date || "Select a date"}</Text>
+        </View>
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>
+            Start Time: {startTime || "Select a start time"}
+          </Text>
+        </View>
+        <View style={styles.dateContainer}>
+          <Text style={styles.dateText}>
+            End Time: {endTime || "Select an end time"}
+          </Text>
+        </View>
+        <RNPickerSelect
+          style={pickerSelectStyles}
+          onValueChange={(value) => {
+            if (value === addCategoryText) {
+              handleAddCategory();
+            } else {
+              setCategory(value);
+            }
+          }}
+          items={categories.map((cat) => ({ label: cat, value: cat }))}
+          placeholder={{ label: "Selecciona una categoría", value: null }}
+        />
+        <Button title="Submit" onPress={handleSubmit} />
+      </ScrollView>
+      {Platform.OS === "android" && (
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={isModalVisible}
+          onRequestClose={() => setIsModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Añadir categoría</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Nombre de la categoría"
+                value={newCategory}
+                onChangeText={setNewCategory}
+              />
+              <Button title="Añadir" onPress={handleAndroidCategoryAdd} />
+              <Button
+                title="Cancelar"
+                onPress={() => {
+                  setIsModalVisible(false);
+                  setNewCategory("");
+                }}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </Container>
   );
 };
 
 const styles = StyleSheet.create({
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
+  container: {
+    padding: 16,
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   input: {
+    width: "100%",
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 10,
@@ -189,14 +256,54 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     marginBottom: 15,
   },
-
   dateContainer: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
+    marginVertical: 5,
   },
   dateText: {
     fontSize: 18,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 20,
+    marginBottom: 10,
+  },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    width: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 4,
+    backgroundColor: "#fff",
+    marginBottom: 15,
+  },
+  inputAndroid: {
+    width: "100%",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    marginBottom: 15,
   },
 });
 
