@@ -18,33 +18,36 @@ const WelcomeScreen = ({ navigation }) => {
   };
 
   return (
-    <Container>
+    <SafeAreaView
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        padding: 10,
+        gap: 30,
+      }}
+    >
       <Header />
-      <View style={styles.containerText}>
-        <Text style={styles.bestSelfMessage}>
-          Sé la mejor versión de ti mismo
-        </Text>
-        <Text style={styles.beBetterAlly}>
-          Be Better es tu aliado para el crecimiento personal. Establece metas,
-          supera desafíos y mejora cada día. Únete y comienza tu viaje hacia una
-          vida mejor.
-        </Text>
-      </View>
+      <Text style={styles.bestSelfMessage}>
+        Sé la mejor versión de ti mismo
+      </Text>
+      <Text style={styles.beBetterAlly}>
+        Be Better es tu aliado para el crecimiento personal. Establece metas,
+        supera desafíos y mejora cada día. Únete y comienza tu viaje hacia una
+        vida mejor.
+      </Text>
       <ButtonWelcomeScreen text="Iniciar" navigation={navigation} />
-    </Container>
+    </SafeAreaView>
   );
 };
 
 export default WelcomeScreen;
 
 const styles = StyleSheet.create({
-  containerText: {
-    marginVertical: "10%",
-  },
   bestSelfMessage: {
     fontSize: 40,
     fontStyle: "italic",
-    marginBottom: "8%",
   },
   beBetterAlly: {
     fontSize: 20,

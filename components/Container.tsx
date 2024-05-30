@@ -40,8 +40,7 @@ const getStyles = (dimensions) => {
       container: {
         flex: 1,
         flexDirection: "column",
-        padding: 10,
-        margin: 10,
+        padding: 16,
         justifyContent: "space-between",
       },
     });

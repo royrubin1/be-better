@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, Image, Alert } from "react-native";
+import { View, Text, FlatList, StyleSheet, Alert } from "react-native";
 import moment from "moment";
 import DateSection from "./DateSection";
 import { auth, db } from "../config/firebase";
@@ -10,23 +10,29 @@ import {
   getDocs,
   query,
   where,
+  writeBatch,
 } from "firebase/firestore";
 import {
   GestureHandlerRootView,
   RectButton,
   Swipeable,
 } from "react-native-gesture-handler";
+import CheckBox from "./CheckBox";
 
 const Schedule = () => {
   const currentDate = moment();
   const [selectedDay, setSelectedDay] = useState(currentDate.date());
   const [tasksByDay, setTasksByDay] = useState({});
-  const [reminderTasks, setReminderTasks] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedDayUpdate, setSelectedDayUpdate] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
       const fetchAndFilterUserTasks = async () => {
+        if (selectedDayUpdate) {
+          await syncTasksWithFirestore(tasksByDay[selectedDayUpdate]);
+          setSelectedDayUpdate(null);
+        }
         const selectedDate = currentDate.date(selectedDay).format("YYYY-MM-DD");
         const goals = await fetchUserTasks(selectedDate);
         setTasksByDay({ ...tasksByDay, [selectedDay]: goals });
@@ -62,6 +68,21 @@ const Schedule = () => {
     return goals;
   };
 
+  const syncTasksWithFirestore = async (tasks) => {
+    const batch = writeBatch(db);
+    tasks.map((task) => {
+      const taskRef = doc(db, "goals", task.id);
+      batch.update(taskRef, { done: task.done });
+    });
+
+    try {
+      await batch.commit();
+      console.log("Cambios guardados exitosamente en Firestore.");
+    } catch (error) {
+      console.error("Error al guardar cambios en Firestore:", error);
+    }
+  };
+
   // Category default with their colors
   const categoryColors = {
     Trabajo: "#3498db",
@@ -79,6 +100,19 @@ const Schedule = () => {
     });
   };
 
+  const handleCheckboxChange = (idItem) => {
+    setTasksByDay((prevTasksByDay) => {
+      const updatedTasks = prevTasksByDay[selectedDay].map((task) => {
+        if (task.id === idItem) {
+          return { ...task, done: !task.done };
+        }
+        return task;
+      });
+      setSelectedDayUpdate(selectedDay);
+      return { ...prevTasksByDay, [selectedDay]: updatedTasks };
+    });
+  };
+
   const renderHour = ({ item }) => {
     return (
       <View style={styles.objectiveContainer}>
@@ -92,8 +126,30 @@ const Schedule = () => {
             },
           ]}
         >
-          <View style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <Text style={styles.objectiveTitle}>{item.title}</Text>
+          <View style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+            <View
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={[
+                  styles.objectiveTitle,
+                  item.done && {
+                    textDecorationLine: "line-through",
+                  },
+                ]}
+              >
+                {item.title}
+              </Text>
+              <CheckBox
+                isChecked={item.done}
+                onToggle={() => handleCheckboxChange(item.id)}
+              />
+            </View>
             <View
               style={{
                 width: "100%",
@@ -119,14 +175,14 @@ const Schedule = () => {
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          height: 100,
+          height: 120,
         }}
       >
         <RectButton
           style={styles.deleteButton}
           onPress={() => handleDelete(item)}
         >
-          <Text style={styles.deleteButtonText}>Delete</Text>
+          <Text style={styles.deleteButtonText}>Borrar</Text>
         </RectButton>
       </View>
     );
@@ -251,16 +307,19 @@ const styles = StyleSheet.create({
   objectiveTime: {
     fontSize: 16,
     fontWeight: "bold",
+    color: "white",
   },
   objectiveTitle: {
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "left",
+    color: "white",
   },
   objectiveCategory: {
     fontSize: 16,
     textAlign: "right",
     fontWeight: "bold",
+    color: "white",
   },
   reminderContainer: {
     height: 220,
