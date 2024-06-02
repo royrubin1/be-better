@@ -46,6 +46,7 @@ const TaskScreen = ({ navigation }) => {
       title,
       start_date: startTime,
       end_date: endTime,
+      date: date,
       category,
       done: false,
       user_id: auth.currentUser.uid,

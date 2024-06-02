@@ -45,10 +45,17 @@ const StatisticsScreen = () => {
         return acc;
       }, {});
 
+      // Category default with their colors
+      const categoryColors = {
+        Trabajo: "#3498db",
+        Personal: "#e74c3c",
+        Salud: "#2ecc71",
+      };
+
       const categoryChartData = Object.keys(categories).map((category) => ({
         name: category,
         count: categories[category],
-        color: `#${Math.floor(Math.random() * 16777215).toString(16)}`, // Random color
+        color: !categoryColors[category] ? "#cccccc" : categoryColors[category],
         legendFontColor: "#7F7F7F",
         legendFontSize: 15,
       }));
@@ -119,13 +126,14 @@ const StatisticsScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.header}>Estadísticas de objetivos</Text>
-
+      <View style={styles.headerContainer}>
+        <Text style={styles.header}>Estadísticas de Objetivos</Text>
+      </View>
       <View style={styles.chartContainer}>
         <Text style={styles.chartTitle}>Progreso en los últimos 7 días</Text>
         <LineChart
           data={lineChartData}
-          width={Dimensions.get("window").width - 20}
+          width={Dimensions.get("window").width - 30}
           height={220}
           yAxisLabel=""
           yAxisSuffix=""
@@ -147,6 +155,18 @@ const StatisticsScreen = () => {
           absolute
         />
       </View>
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Total Objetivos</Text>
+          <Text style={styles.summaryValue}>{goals.length}</Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryTitle}>Objetivos Completados</Text>
+          <Text style={styles.summaryValue}>
+            {goals.filter((goal) => goal.done).length}
+          </Text>
+        </View>
+      </View>
     </ScrollView>
   );
 };
@@ -162,22 +182,62 @@ const chartConfig = {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
+    flexGrow: 1,
+    backgroundColor: "#ffffff", // Fondo claro para un diseño moderno
+  },
+  headerContainer: {
+    paddingVertical: 30,
+    backgroundColor: "#4e5d6c", // Un color de fondo más oscuro para el encabezado
+    alignItems: "center",
   },
   header: {
     fontSize: 24,
-    textAlign: "center",
-    marginVertical: 20,
+    color: "#ffffff", // Texto claro para contraste
     fontWeight: "bold",
   },
   chartContainer: {
-    marginVertical: 10,
-    alignItems: "center",
+    marginVertical: 20,
+    padding: 16,
+    backgroundColor: "#f8f9fa", // Fondo claro para los contenedores de gráficos
+    borderRadius: 8,
+    shadowColor: "#000", // Sombra para dar profundidad
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   chartTitle: {
     fontSize: 18,
     marginBottom: 10,
+    color: "#333333", // Color oscuro para el título del gráfico
+  },
+  summaryContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 10,
+  },
+  // Tarjeta de Resumen
+  summaryCard: {
+    backgroundColor: "#4e5d6c",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+    minWidth: "40%", // Asegura que las tarjetas tengan un ancho mínimo
+  },
+  // Título de la Tarjeta de Resumen
+  summaryTitle: {
+    fontSize: 16,
+    color: "#ffffff",
+    marginBottom: 5,
+  },
+  // Valor de la Tarjeta de Resumen
+  summaryValue: {
+    fontSize: 24,
+    color: "#ffffff",
+    fontWeight: "bold",
   },
 });
 

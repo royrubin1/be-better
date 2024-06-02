@@ -1,5 +1,12 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, Alert } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Alert,
+  AppState,
+} from "react-native";
 import moment from "moment";
 import DateSection from "./DateSection";
 import { auth, db } from "../config/firebase";
@@ -25,6 +32,7 @@ const Schedule = () => {
   const [tasksByDay, setTasksByDay] = useState({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [selectedDayUpdate, setSelectedDayUpdate] = useState(null);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -67,6 +75,36 @@ const Schedule = () => {
     });
     return goals;
   };
+
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App has come to the foreground!");
+      } else if (
+        appState.current.match(/active/) &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        console.log("App is going to the background!");
+        if (selectedDayUpdate) {
+          await syncTasksWithFirestore(tasksByDay[selectedDayUpdate]);
+          setSelectedDayUpdate(null);
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [selectedDayUpdate, tasksByDay]);
 
   const syncTasksWithFirestore = async (tasks) => {
     const batch = writeBatch(db);
@@ -159,7 +197,7 @@ const Schedule = () => {
               }}
             >
               <Text style={styles.objectiveTime}>
-                {item.start_time} - {item.end_time}
+                {item.start_date} - {item.end_date}
               </Text>
               <Text style={styles.objectiveCategory}>{item.category}</Text>
             </View>
