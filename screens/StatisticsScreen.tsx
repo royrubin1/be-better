@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet, Dimensions } from "react-native";
 import { PieChart, LineChart } from "react-native-chart-kit";
 import { auth, db } from "../config/firebase";
+import Container from "../components/Container";
 
 const StatisticsScreen = () => {
   const [goals, setGoals] = useState([]);
@@ -34,76 +35,70 @@ const StatisticsScreen = () => {
     return goalsData;
   };
 
+  const calculateCategoryData = (goalsData) => {
+    const categories = goalsData.reduce((acc, goal) => {
+      acc[goal.category] = (acc[goal.category] || 0) + 1;
+      return acc;
+    }, {});
+
+    const categoryColors = {
+      Trabajo: "#3498db",
+      Personal: "#e74c3c",
+      Salud: "#2ecc71",
+    };
+
+    return Object.keys(categories).map((category) => ({
+      name: category,
+      count: categories[category],
+      color: categoryColors[category] || "#cccccc",
+      legendFontColor: "#7F7F7F",
+      legendFontSize: 15,
+    }));
+  };
+
+  const calculateLineChartData = (goalsData) => {
+    const now = new Date();
+    const startDate = new Date();
+    startDate.setDate(now.getDate() - 6);
+
+    const filteredGoals = goalsData.filter(
+      (goal) => new Date(goal.date) >= startDate
+    );
+
+    const completedGoals = Array(7).fill(0);
+    const uncompletedGoals = Array(7).fill(0);
+    const labels = [];
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + i);
+      const dateString = date.toISOString().split("T")[0];
+      const label = dateString.substring(8);
+
+      const goalsForDate = filteredGoals.filter(
+        (goal) => goal.date === dateString
+      );
+
+      const completedCount = goalsForDate.filter((goal) => goal.done).length;
+      const uncompletedCount = goalsForDate.filter((goal) => !goal.done).length;
+
+      completedGoals[i] = completedCount;
+      uncompletedGoals[i] = uncompletedCount;
+      labels.push(label);
+    }
+
+    return { labels, completedGoals, uncompletedGoals };
+  };
+
   useEffect(() => {
     const fetchGoals = async () => {
       const goalsData = await getGoals();
       setGoals(goalsData);
 
-      // Calculate statistics for pie chart
-      const categories = goalsData.reduce((acc, goal) => {
-        acc[goal.category] = (acc[goal.category] || 0) + 1;
-        return acc;
-      }, {});
-
-      // Category default with their colors
-      const categoryColors = {
-        Trabajo: "#3498db",
-        Personal: "#e74c3c",
-        Salud: "#2ecc71",
-      };
-
-      const categoryChartData = Object.keys(categories).map((category) => ({
-        name: category,
-        count: categories[category],
-        color: !categoryColors[category] ? "#cccccc" : categoryColors[category],
-        legendFontColor: "#7F7F7F",
-        legendFontSize: 15,
-      }));
-
+      const categoryChartData = calculateCategoryData(goalsData);
       setCategoryData(categoryChartData);
 
-      // Calculate data for line chart (last 7 days)
-      const calculateLineChartData = () => {
-        const now = new Date();
-        const startDate = new Date(now.setDate(now.getDate() - 6)); // Get date 6 days ago, including today it's 7 days
-        const filteredGoals = goalsData.filter(
-          (goal) => new Date(goal.start_date) >= startDate
-        );
-
-        const completedGoals = Array(7).fill(0);
-        const uncompletedGoals = Array(7).fill(0);
-        const labels = [];
-
-        for (let i = 0; i < 7; i++) {
-          const date = new Date(startDate);
-          date.setDate(date.getDate() + i);
-          const dateString = date.toISOString().split("T")[0];
-          const label = dateString.substring(8); // Remove year from date (MM-DD format)
-
-          const goalsForDate = filteredGoals.filter((goal) => {
-            const goalDate = new Date(goal.start_date)
-              .toISOString()
-              .split("T")[0];
-            return goalDate === dateString;
-          });
-
-          const completedCount = goalsForDate.filter(
-            (goal) => goal.done
-          ).length;
-          const uncompletedCount = goalsForDate.filter(
-            (goal) => !goal.done
-          ).length;
-
-          completedGoals[i] = completedCount;
-          uncompletedGoals[i] = uncompletedCount;
-          labels.push(label);
-        }
-
-        return { labels, completedGoals, uncompletedGoals };
-      };
-
-      const last7DaysData = calculateLineChartData();
-
+      const last7DaysData = calculateLineChartData(goalsData);
       setLineChartData({
         labels: last7DaysData.labels,
         datasets: [
@@ -125,49 +120,49 @@ const StatisticsScreen = () => {
   }, []);
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Text style={styles.header}>Estadísticas de Objetivos</Text>
-      </View>
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Progreso en los últimos 7 días</Text>
-        <LineChart
-          data={lineChartData}
-          width={Dimensions.get("window").width - 30}
-          height={220}
-          yAxisLabel=""
-          yAxisSuffix=""
-          chartConfig={chartConfig}
-          bezier
-        />
-      </View>
+    <Container>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.bigTitle}>Estadísticas de Objetivos</Text>
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Progreso en los últimos 7 días</Text>
+          <LineChart
+            data={lineChartData}
+            width={Dimensions.get("window").width - 30}
+            height={220}
+            yAxisLabel=""
+            yAxisSuffix=""
+            chartConfig={chartConfig}
+            bezier
+          />
+        </View>
 
-      <View style={styles.chartContainer}>
-        <Text style={styles.chartTitle}>Objetivos por categoría</Text>
-        <PieChart
-          data={categoryData}
-          width={Dimensions.get("window").width - 20}
-          height={220}
-          chartConfig={chartConfig}
-          accessor="count"
-          backgroundColor="transparent"
-          paddingLeft="15"
-          absolute
-        />
-      </View>
-      <View style={styles.summaryContainer}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Total Objetivos</Text>
-          <Text style={styles.summaryValue}>{goals.length}</Text>
+        <View style={styles.chartContainer}>
+          <Text style={styles.chartTitle}>Objetivos por categoría</Text>
+          <PieChart
+            data={categoryData}
+            width={Dimensions.get("window").width - 20}
+            height={220}
+            chartConfig={chartConfig}
+            accessor="count"
+            backgroundColor="transparent"
+            paddingLeft="15"
+            absolute
+          />
         </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Objetivos Completados</Text>
-          <Text style={styles.summaryValue}>
-            {goals.filter((goal) => goal.done).length}
-          </Text>
+        <View style={styles.summaryContainer}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Total Objetivos</Text>
+            <Text style={styles.summaryValue}>{goals.length}</Text>
+          </View>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryTitle}>Objetivos Completados</Text>
+            <Text style={styles.summaryValue}>
+              {goals.filter((goal) => goal.done).length}
+            </Text>
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </Container>
   );
 };
 
@@ -181,26 +176,26 @@ const chartConfig = {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContainer: {
     flexGrow: 1,
-    backgroundColor: "#ffffff", // Fondo claro para un diseño moderno
-  },
-  headerContainer: {
-    paddingVertical: 30,
-    backgroundColor: "#4e5d6c", // Un color de fondo más oscuro para el encabezado
+    justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderRadius: 20,
+    padding: 10,
   },
-  header: {
-    fontSize: 24,
-    color: "#ffffff", // Texto claro para contraste
+  bigTitle: {
+    fontSize: 34,
+    color: "#364f6b",
     fontWeight: "bold",
+    marginBottom: 20,
   },
   chartContainer: {
     marginVertical: 20,
     padding: 16,
-    backgroundColor: "#f8f9fa", // Fondo claro para los contenedores de gráficos
+    backgroundColor: "#f8f9fa",
     borderRadius: 8,
-    shadowColor: "#000", // Sombra para dar profundidad
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -212,28 +207,27 @@ const styles = StyleSheet.create({
   chartTitle: {
     fontSize: 18,
     marginBottom: 10,
-    color: "#333333", // Color oscuro para el título del gráfico
+    color: "#333333",
+    textAlign: "center",
   },
   summaryContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     padding: 10,
+    width: "100%",
   },
-  // Tarjeta de Resumen
   summaryCard: {
     backgroundColor: "#4e5d6c",
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
-    minWidth: "40%", // Asegura que las tarjetas tengan un ancho mínimo
+    minWidth: "40%",
   },
-  // Título de la Tarjeta de Resumen
   summaryTitle: {
     fontSize: 16,
     color: "#ffffff",
     marginBottom: 5,
   },
-  // Valor de la Tarjeta de Resumen
   summaryValue: {
     fontSize: 24,
     color: "#ffffff",

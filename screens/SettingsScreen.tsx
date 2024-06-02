@@ -1,6 +1,6 @@
 import { signOut } from "firebase/auth";
 import React from "react";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { auth } from "../config/firebase";
 
 const SettingsScreen = ({ navigation }) => {
@@ -16,9 +16,15 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+      <Image
+        style={styles.image}
+        source={require("../assets/settings-image.png")}
+      />
+      <Text style={styles.title}>Ajustes</Text>
 
-      <Button title="Log Out" onPress={handleLogout} />
+      <TouchableOpacity style={styles.button} onPress={handleLogout}>
+        <Text style={styles.buttonText}>Log Out</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -26,23 +32,37 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 20,
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    borderRadius: 20,
+    padding: 20,
+    margin: 20,
   },
-  title: {
-    fontSize: 24,
+  image: {
+    width: "100%",
+    height: 260,
+    resizeMode: "center",
     marginBottom: 20,
   },
-  option: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-    width: "100%",
+  title: {
+    fontSize: 34,
+    color: "#364f6b",
+    fontWeight: "bold",
+    marginBottom: 20,
   },
-  optionText: {
+  button: {
+    width: "100%",
+    backgroundColor: "#74C69D",
+    padding: 15,
+    borderRadius: 25,
+    alignItems: "center",
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "#fff",
     fontSize: 18,
+    fontWeight: "bold",
   },
 });
 
