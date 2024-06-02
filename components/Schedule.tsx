@@ -1,20 +1,46 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, StyleSheet, Image } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Alert,
+  AppState,
+} from "react-native";
 import moment from "moment";
 import DateSection from "./DateSection";
 import { auth, db } from "../config/firebase";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  where,
+  writeBatch,
+} from "firebase/firestore";
+import {
+  GestureHandlerRootView,
+  RectButton,
+  Swipeable,
+} from "react-native-gesture-handler";
+import CheckBox from "./CheckBox";
 
 const Schedule = () => {
   const currentDate = moment();
   const [selectedDay, setSelectedDay] = useState(currentDate.date());
   const [tasksByDay, setTasksByDay] = useState({});
-  const [reminderTasks, setReminderTasks] = useState([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedDayUpdate, setSelectedDayUpdate] = useState(null);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     if (isAuthenticated) {
       const fetchAndFilterUserTasks = async () => {
+        if (selectedDayUpdate) {
+          await syncTasksWithFirestore(tasksByDay[selectedDayUpdate]);
+          setSelectedDayUpdate(null);
+        }
         const selectedDate = currentDate.date(selectedDay).format("YYYY-MM-DD");
         const goals = await fetchUserTasks(selectedDate);
         setTasksByDay({ ...tasksByDay, [selectedDay]: goals });
@@ -22,17 +48,6 @@ const Schedule = () => {
       fetchAndFilterUserTasks();
     }
   }, [isAuthenticated, selectedDay]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      const fetchAndFilterUserTasks = async () => {
-        const tomorrowDate = moment().add(1, "day").format("YYYY-MM-DD");
-        const goals = await fetchUserTasks(tomorrowDate);
-        setReminderTasks(goals);
-      };
-      fetchAndFilterUserTasks();
-    }
-  }, [isAuthenticated]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -50,8 +65,7 @@ const Schedule = () => {
     const queryGoals = query(
       collection(db, "goals"),
       where("user_id", "==", auth.currentUser.uid),
-      where("start_date", "==", formatDate),
-      where("done", "==", false)
+      where("date", "==", formatDate)
     );
 
     const querySnapShot = await getDocs(queryGoals);
@@ -62,6 +76,51 @@ const Schedule = () => {
     return goals;
   };
 
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        console.log("App has come to the foreground!");
+      } else if (
+        appState.current.match(/active/) &&
+        nextAppState.match(/inactive|background/)
+      ) {
+        console.log("App is going to the background!");
+        if (selectedDayUpdate) {
+          await syncTasksWithFirestore(tasksByDay[selectedDayUpdate]);
+          setSelectedDayUpdate(null);
+        }
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange
+    );
+
+    return () => {
+      subscription.remove();
+    };
+  }, [selectedDayUpdate, tasksByDay]);
+
+  const syncTasksWithFirestore = async (tasks) => {
+    const batch = writeBatch(db);
+    tasks.map((task) => {
+      const taskRef = doc(db, "goals", task.id);
+      batch.update(taskRef, { done: task.done });
+    });
+
+    try {
+      await batch.commit();
+      console.log("Cambios guardados exitosamente en Firestore.");
+    } catch (error) {
+      console.error("Error al guardar cambios en Firestore:", error);
+    }
+  };
+
   // Category default with their colors
   const categoryColors = {
     Trabajo: "#3498db",
@@ -69,12 +128,32 @@ const Schedule = () => {
     Salud: "#2ecc71",
   };
 
+  const deleteTask = async (taskId) => {
+    await deleteDoc(doc(db, "goals", taskId));
+    setTasksByDay({
+      ...tasksByDay,
+      [selectedDay]: tasksByDay[selectedDay].filter(
+        (task) => task.id !== taskId
+      ),
+    });
+  };
+
+  const handleCheckboxChange = (idItem) => {
+    setTasksByDay((prevTasksByDay) => {
+      const updatedTasks = prevTasksByDay[selectedDay].map((task) => {
+        if (task.id === idItem) {
+          return { ...task, done: !task.done };
+        }
+        return task;
+      });
+      setSelectedDayUpdate(selectedDay);
+      return { ...prevTasksByDay, [selectedDay]: updatedTasks };
+    });
+  };
+
   const renderHour = ({ item }) => {
     return (
       <View style={styles.objectiveContainer}>
-        <Text style={styles.objectiveTime}>
-          {moment(item.start_date).format("DD-MM")}
-        </Text>
         <View
           style={[
             styles.objectiveCard,
@@ -85,38 +164,77 @@ const Schedule = () => {
             },
           ]}
         >
-          <Text style={styles.objectiveTitle}>{item.title}</Text>
-          <Text style={styles.objectiveCategory}>{item.category}</Text>
+          <View style={{ display: "flex", flexDirection: "column", gap: 30 }}>
+            <View
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text
+                style={[
+                  styles.objectiveTitle,
+                  item.done && {
+                    textDecorationLine: "line-through",
+                  },
+                ]}
+              >
+                {item.title}
+              </Text>
+              <CheckBox
+                isChecked={item.done}
+                onToggle={() => handleCheckboxChange(item.id)}
+              />
+            </View>
+            <View
+              style={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "row",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={styles.objectiveTime}>
+                {item.start_date} - {item.end_date}
+              </Text>
+              <Text style={styles.objectiveCategory}>{item.category}</Text>
+            </View>
+          </View>
         </View>
-        <Text style={styles.objectiveTime}>
-          {moment(item.end_date).format("DD-MM")}
-        </Text>
+      </View>
+    );
+  };
+  const renderRightActions = (item) => {
+    return (
+      <View
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: 120,
+        }}
+      >
+        <RectButton
+          style={styles.deleteButton}
+          onPress={() => handleDelete(item)}
+        >
+          <Text style={styles.deleteButtonText}>Borrar</Text>
+        </RectButton>
       </View>
     );
   };
 
-  const renderTasks = ({ item }) => {
-    return (
-      <View style={styles.containerTask}>
-        <View style={styles.containerImage}>
-          <Image
-            source={require("../assets/calendario.png")}
-            style={{ width: 30, height: 30 }}
-          />
-        </View>
-        <View
-          style={{
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
-          <Text style={{ color: "#D4D4F6" }}>{item.title}</Text>
-          <Text style={{ color: "#D4D4F6" }}>
-            {moment(item.start_date, "YYYY-MM-DD").format("DD-MM")} -{" "}
-            {moment(item.end_date, "YYYY-MM-DD").format("DD-MM")}
-          </Text>
-        </View>
-      </View>
+  const handleDelete = (item) => {
+    Alert.alert(
+      "Delete Task",
+      "Are you sure you want to delete this task?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", onPress: () => deleteTask(item.id) },
+      ],
+      { cancelable: true }
     );
   };
 
@@ -124,17 +242,34 @@ const Schedule = () => {
     setSelectedDay(day);
   };
 
+  const SwipeableRow = ({ item }) => {
+    let swipeableRef = null;
+
+    const updateRef = (ref) => {
+      swipeableRef = ref;
+    };
+
+    return (
+      <Swipeable
+        ref={updateRef}
+        renderRightActions={() => renderRightActions(item)}
+      >
+        {renderHour({ item })}
+      </Swipeable>
+    );
+  };
+
   return (
-    <View style={styles.container}>
+    <GestureHandlerRootView style={styles.container}>
       <DateSection selectedDay={selectedDay} handleDayPress={handleDayPress} />
-      <View style={{ maxHeight: "40%", minHeight: "40%" }}>
+      <View>
         <Text style={styles.dateText}>
           {moment(currentDate).date(selectedDay).format("dddd, D MMMM YYYY")}
         </Text>
         {!tasksByDay[selectedDay] || tasksByDay[selectedDay].length === 0 ? (
           <View
             style={{
-              height: "100%",
+              height: "90%",
               width: "100%",
               display: "flex",
               alignItems: "center",
@@ -150,41 +285,13 @@ const Schedule = () => {
           <FlatList
             data={tasksByDay[selectedDay] || []}
             showsVerticalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={renderHour}
-            style={{ height: "100%" }}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={({ item }) => <SwipeableRow item={item} />}
+            style={{ height: "90%" }}
           />
         )}
       </View>
-      <View style={{ maxHeight: "40%" }}>
-        <Text style={styles.reminderTitle}>Reminder</Text>
-        <Text style={styles.reminderText}>
-          Don't forget schedule for tomorrow
-        </Text>
-        {reminderTasks.length === 0 ? (
-          <View
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              marginTop: "15%",
-            }}
-          >
-            <Image
-              style={{ width: "35%", height: 100 }}
-              source={require("../assets/capibara_sleep.png")}
-            />
-          </View>
-        ) : (
-          <FlatList
-            data={reminderTasks || []}
-            showsVerticalScrollIndicator={false}
-            renderItem={renderTasks}
-            style={{ height: "100%" }}
-          />
-        )}
-      </View>
-    </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -200,33 +307,57 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   objectiveContainer: {
+    width: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 12,
     marginBottom: 20,
   },
+  deleteButton: {
+    backgroundColor: "red",
+    justifyContent: "center",
+    display: "flex",
+    alignItems: "center",
+    width: 75,
+    height: 40,
+  },
+  deleteButtonText: {
+    color: "white",
+    fontWeight: "bold",
+  },
   objectiveCard: {
-    alignSelf: "flex-end",
     padding: 14,
     borderRadius: 10,
     borderTopStartRadius: 20,
     borderBottomStartRadius: 20,
     borderStartWidth: 5,
-    width: 250,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.29,
+    shadowRadius: 4.65,
+    elevation: 7,
+    width: "100%",
   },
   objectiveTime: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#c0c0c0",
+    color: "white",
   },
   objectiveTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
-    color: "white",
     textAlign: "left",
+    color: "white",
   },
   objectiveCategory: {
     fontSize: 16,
-    color: "white",
     textAlign: "right",
+    fontWeight: "bold",
+    color: "white",
   },
   reminderContainer: {
     height: 220,

@@ -44,8 +44,9 @@ const TaskScreen = ({ navigation }) => {
 
     const goal = {
       title,
-      start_date: `${date}T${startTime}`,
-      end_date: `${date}T${endTime}`,
+      start_date: startTime,
+      end_date: endTime,
+      date: date,
       category,
       done: false,
       user_id: auth.currentUser.uid,

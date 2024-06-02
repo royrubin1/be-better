@@ -6,16 +6,36 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Schedule from "../components/Schedule";
+import AntDesign from "@expo/vector-icons/AntDesign";
+import { auth } from "../config/firebase";
 
 const HomeScreen = ({ navigation }) => {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const getUserName = () => {
+    if (user && user.email) {
+      const userEmail = user.email.split("@");
+      const userName = userEmail[0];
+      return userName;
+    }
+    return null;
+  };
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.containerText}>
-          <Text style={styles.greetingText}>Good Morning,</Text>
-          <Text style={styles.nameText}>Daniel</Text>
+          <Text style={styles.greetingText}>Buenos días,</Text>
+          <Text style={styles.nameText}>{getUserName()}</Text>
         </View>
         <View style={styles.containerImage}>
           <Image
@@ -34,12 +54,12 @@ const HomeScreen = ({ navigation }) => {
           marginBottom: 14,
         }}
       >
-        <TouchableOpacity style={styles.btnSchedule}>
-          <Text
-            style={styles.textButton}
-            onPress={() => navigation.navigate("Task")}
-          >
-            Set Schedule
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Task")}
+          style={styles.btnSchedule}
+        >
+          <Text style={styles.textButton}>
+            <AntDesign name="plus" size={30} color="white" />
           </Text>
         </TouchableOpacity>
       </View>
@@ -85,10 +105,11 @@ const styles = StyleSheet.create({
     borderColor: "green",
   },
   btnSchedule: {
-    width: "60%",
-    height: 50,
+    width: "17%",
+    height: 60,
+    alignSelf: "flex-end",
     backgroundColor: "#40916C",
-    borderRadius: 50,
+    borderRadius: 100,
     display: "flex",
     justifyContent: "center",
     alignItems: "center",

@@ -17,6 +17,7 @@ const DateSection = ({ selectedDay, handleDayPress }) => {
   const renderDay = ({ item }) => {
     const date = moment(currentDate).date(item);
     const isActive = (day) => day === selectedDay;
+
     return (
       <TouchableOpacity
         onPress={() => handleDayPress(item)}
@@ -34,7 +35,6 @@ const DateSection = ({ selectedDay, handleDayPress }) => {
       </TouchableOpacity>
     );
   };
-
   return (
     <View>
       <View>
@@ -49,7 +49,7 @@ const DateSection = ({ selectedDay, handleDayPress }) => {
             offset: ITEM_WIDTH * index,
             index,
           })}
-          initialScrollIndex={currentDate.date() - 1}
+          initialScrollIndex={selectedDay - 1}
         />
       </View>
     </View>
