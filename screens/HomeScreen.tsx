@@ -10,10 +10,12 @@ import React, { useEffect, useState } from "react";
 import Schedule from "../components/Schedule";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import { auth } from "../config/firebase";
+import { useRoute } from "@react-navigation/native";
 
 const HomeScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
-
+  const route = useRoute();
+  const newTask = route.params;
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
@@ -44,7 +46,7 @@ const HomeScreen = ({ navigation }) => {
           />
         </View>
       </View>
-      <Schedule />
+      <Schedule newTasksAdded={newTask} />
       <View
         style={{
           width: "100%",

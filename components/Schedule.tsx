@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,10 +14,11 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   query,
+  updateDoc,
   where,
-  writeBatch,
 } from "firebase/firestore";
 import {
   GestureHandlerRootView,
@@ -31,18 +32,17 @@ const Schedule = () => {
   const [selectedDay, setSelectedDay] = useState(currentDate.date());
   const [tasksByDay, setTasksByDay] = useState({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [selectedDayUpdate, setSelectedDayUpdate] = useState(null);
-  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     if (isAuthenticated) {
       const fetchAndFilterUserTasks = async () => {
-        if (selectedDayUpdate) {
-          await syncTasksWithFirestore(tasksByDay[selectedDayUpdate]);
-          setSelectedDayUpdate(null);
-        }
         const selectedDate = currentDate.date(selectedDay).format("YYYY-MM-DD");
         const goals = await fetchUserTasks(selectedDate);
+        goals.sort((a: any, b: any) => {
+          if (a.start_date < b.start_date) return -1;
+          if (a.start_date > b.start_date) return 1;
+          return 0;
+        });
         setTasksByDay({ ...tasksByDay, [selectedDay]: goals });
       };
       fetchAndFilterUserTasks();
@@ -76,46 +76,18 @@ const Schedule = () => {
     return goals;
   };
 
-  useEffect(() => {
-    const handleAppStateChange = async (nextAppState) => {
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        console.log("App has come to the foreground!");
-      } else if (
-        appState.current.match(/active/) &&
-        nextAppState.match(/inactive|background/)
-      ) {
-        console.log("App is going to the background!");
-        if (selectedDayUpdate) {
-          await syncTasksWithFirestore(tasksByDay[selectedDayUpdate]);
-          setSelectedDayUpdate(null);
-        }
-      }
-      appState.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener(
-      "change",
-      handleAppStateChange
-    );
-
-    return () => {
-      subscription.remove();
-    };
-  }, [selectedDayUpdate, tasksByDay]);
-
-  const syncTasksWithFirestore = async (tasks) => {
-    const batch = writeBatch(db);
-    tasks.map((task) => {
-      const taskRef = doc(db, "goals", task.id);
-      batch.update(taskRef, { done: task.done });
-    });
-
+  const syncTasksWithFirestore = async (idTask) => {
+    const taskRef = doc(db, "goals", idTask);
     try {
-      await batch.commit();
-      console.log("Cambios guardados exitosamente en Firestore.");
+      const taskSnap = await getDoc(taskRef);
+      if (taskSnap.exists()) {
+        const currentData = taskSnap.data();
+        const currentDoneStatus = currentData.done;
+        await updateDoc(taskRef, { done: !currentDoneStatus });
+        console.log("Cambios guardados exitosamente en Firestore.");
+      } else {
+        console.log("Documento no encontrado!");
+      }
     } catch (error) {
       console.error("Error al guardar cambios en Firestore:", error);
     }
@@ -138,7 +110,7 @@ const Schedule = () => {
     });
   };
 
-  const handleCheckboxChange = (idItem) => {
+  const handleCheckboxChange = async (idItem) => {
     setTasksByDay((prevTasksByDay) => {
       const updatedTasks = prevTasksByDay[selectedDay].map((task) => {
         if (task.id === idItem) {
@@ -146,9 +118,10 @@ const Schedule = () => {
         }
         return task;
       });
-      setSelectedDayUpdate(selectedDay);
+
       return { ...prevTasksByDay, [selectedDay]: updatedTasks };
     });
+    await syncTasksWithFirestore(idItem);
   };
 
   const renderHour = ({ item }) => {
@@ -228,11 +201,11 @@ const Schedule = () => {
 
   const handleDelete = (item) => {
     Alert.alert(
-      "Delete Task",
-      "Are you sure you want to delete this task?",
+      "Borrar Objetivo",
+      " Estás seguro de que quieres borrar esta tarea?",
       [
-        { text: "Cancel", style: "cancel" },
-        { text: "Delete", onPress: () => deleteTask(item.id) },
+        { text: "Cancelar", style: "cancel" },
+        { text: "Borrar", onPress: () => deleteTask(item.id) },
       ],
       { cancelable: true }
     );
